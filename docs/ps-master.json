@@ -1,0 +1,15 @@
+{
+  "CHURU PANCHAYAT SAMITI": { "code": "CHU", "hindi": "चूरू" },
+  "CHURU NORTH HQ CHURU PANCHAYAT SAMITI": { "code": "CHN", "hindi": "चूरू उत्तर" },
+  "SARDARSHAHAR PANCHAYAT SAMITI": { "code": "SDS", "hindi": "सरदारशहर" },
+  "SARDARSHAHAR EAST PANCHAYAT SAMITI": { "code": "SDE", "hindi": "सरदारशहर पूर्व" },
+  "TARANAGAR EAST PANCHAYAT SAMITI": { "code": "TNE", "hindi": "तारानगर पूर्व" },
+  "TARANAGAR WEST(BHALERI) HQ TARANAGAR PANCHAYAT SAMITI": { "code": "TNW", "hindi": "तारानगर पश्चिम (भालेरी)" },
+  "RATANGARH PANCHAYAT SAMITI": { "code": "RTG", "hindi": "रतनगढ़" },
+  "SUJANGARH PANCHAYAT SAMITI": { "code": "SJG", "hindi": "सुजानगढ़" },
+  "BIDASAR PANCHAYAT SAMITI": { "code": "BDS", "hindi": "बीदासर" },
+  "BHANIPURA PANCHAYAT SAMITI": { "code": "BHP", "hindi": "भानीपुरा" },
+  "RAJGARH PANCHAYAT SAMITI": { "code": "RJG", "hindi": "राजगढ़" },
+  "CHANDGOTHI HQ RAJGARH PANCHAYAT SAMITI": { "code": "CDG", "hindi": "चांदगोठी" },
+  "SIDDHMUKH PANCHAYAT SAMITI": { "code": "SDM", "hindi": "सिद्धमुख" }
+}

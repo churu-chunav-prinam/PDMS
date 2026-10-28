@@ -1,0 +1,59 @@
+{
+  "name": "churu-poll-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Churu poll-day monitoring - backend",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "migrate": "tsx src/db/migrate.ts latest",
+    "migrate:test": "tsx src/db/migrate.ts latest --test",
+    "import:geography": "tsx scripts/import-geography.ts",
+    "seed:steps": "tsx scripts/seed-steps.ts",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "demo:poll": "tsx scripts/demo-poll.ts"
+  },
+  "dependencies": {
+    "bcrypt": "6.0.0",
+    "dotenv": "18.0.5",
+    "exceljs": "4.4.0",
+    "express": "5.2.1",
+    "express-mysql-session": "3.0.3",
+    "express-rate-limit": "8.7.1",
+    "express-session": "1.19.0",
+    "helmet": "8.3.0",
+    "knex": "3.3.0",
+    "mysql2": "3.24.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "6.0.0",
+    "@types/express": "5.0.6",
+    "@types/express-mysql-session": "3.0.8",
+    "@types/express-session": "1.19.0",
+    "@types/node": "24.19.1",
+    "@types/supertest": "7.2.1",
+    "eslint": "10.12.0",
+    "supertest": "7.3.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    },
+    "express-mysql-session": {
+      "mysql2": "3.24.5"
+    }
+  }
+}

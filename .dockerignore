@@ -1,0 +1,14 @@
+# Docker matches these from the build-context root: every pattern needs **/ to reach subfolders.
+# Secrets must never enter the image (dotenv would also load a stray backend/.env).
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/*.log
+frontend/e2e
+backend/reports
+backups
+.git

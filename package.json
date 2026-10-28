@@ -1,0 +1,10 @@
+{
+  "name": "churu-poll",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Churu poll-day monitoring: one-command build and start (backend serves the app)",
+  "scripts": {
+    "build": "npm --prefix frontend run build && npm --prefix backend run build",
+    "start": "npm --prefix backend start"
+  }
+}

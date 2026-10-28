@@ -1,0 +1,62 @@
+# Production (also used for the local check). From the repo folder:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Shares the VPS with the counting site WITHOUT touching it: own project name, container names,
+# network, volume and port (127.0.0.1:3200; the counting site uses 3100). MySQL is never published.
+name: churu-poll
+services:
+  db:
+    image: mysql:8.4.11
+    container_name: churu-poll-db
+    restart: unless-stopped
+    env_file: .env.production
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+05:30
+      - --log-bin-trust-function-creators=1
+      # Small-RAM settings (Hostinger KVM1 shared with the counting site)
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+      - --max-connections=60
+      - --innodb-log-buffer-size=8M
+      - --table-open-cache=400
+      - --thread-cache-size=8
+      - --skip-name-resolve
+    volumes:
+      - churu_poll_db:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    networks: [churu_poll_net]
+    mem_limit: 450m
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build: .
+    image: churu-poll-app:latest
+    container_name: churu-poll-app
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      PORT: "3200"
+      NODE_OPTIONS: --max-old-space-size=200
+    ports:
+      - "127.0.0.1:3200:3200"
+    networks: [churu_poll_net]
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 320m
+
+networks:
+  churu_poll_net:
+    name: churu_poll_net
+
+volumes:
+  churu_poll_db:
+    name: churu_poll_db_data
