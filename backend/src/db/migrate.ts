@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Knex } from 'knex';
+import { dbFallbackWarnings } from '../config/db.js';
 import { loadEnvOrExit, migrationEnvSchema } from '../config/env.js';
 import type { MigrationEnv } from '../config/env.js';
 import { applyAppGrants } from './grants.js';
@@ -23,6 +24,18 @@ export async function runMigrations(
   const config: Knex.MigratorConfig = { migrationSource };
   if (command === 'latest') {
     const [, applied] = (await db.migrate.latest(config)) as [number, string[]];
+    if (env.DB_FALLBACK_ADMIN_AS_APP_USER === 'true') {
+      // The app user IS the admin: table-level REVOKE/GRANT would be meaningless (or harmful).
+      if (env.DB_APP_USER !== env.DB_MIGRATION_USER) {
+        throw new Error('DB_FALLBACK_ADMIN_AS_APP_USER=true requires DB_APP_USER = DB_MIGRATION_USER');
+      }
+      return applied;
+    }
+    if (env.DB_APP_USER === env.DB_MIGRATION_USER) {
+      throw new Error(
+        'DB_APP_USER equals DB_MIGRATION_USER: use a separate app user, or set DB_FALLBACK_ADMIN_AS_APP_USER=true',
+      );
+    }
     await applyAppGrants(db, targetDatabase(env, target), env.DB_APP_USER);
     return applied;
   }
@@ -46,13 +59,16 @@ async function main(): Promise<void> {
   }
   const target: DbTarget = args.includes('--test') ? 'test' : 'dev';
   const env = loadEnvOrExit(migrationEnvSchema);
+  for (const warning of dbFallbackWarnings(env)) console.warn(warning);
   const db = createMigrationKnex(env, target);
   try {
     const names = await runMigrations(db, env, target, command);
     const verb = command === 'latest' ? 'Applied' : 'Rolled back';
     console.log(`[${targetDatabase(env, target)}] ${verb} ${names.length} migration(s)`);
     for (const name of names) console.log(`  - ${name}`);
-    if (command === 'latest') console.log('App user grants applied.');
+    if (command === 'latest' && env.DB_FALLBACK_ADMIN_AS_APP_USER !== 'true') {
+      console.log('App user grants applied.');
+    }
   } finally {
     await db.destroy();
   }

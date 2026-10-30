@@ -1,6 +1,6 @@
 import { createApp } from './app.js';
 import { appConfigFromEnv } from './config/app-config.js';
-import { createPool } from './config/db.js';
+import { createPool, dbFallbackWarnings, dbSslFromEnv } from './config/db.js';
 import { appEnvSchema, loadEnvOrExit } from './config/env.js';
 import { createSessionStore } from './middleware/session.js';
 
@@ -12,7 +12,9 @@ const pool = createPool({
   database: env.DB_NAME,
   user: env.DB_APP_USER,
   password: env.DB_APP_PASSWORD,
+  ssl: dbSslFromEnv(env.DB_SSL_CA),
 });
+for (const warning of dbFallbackWarnings(env)) console.warn(warning);
 const sessionStore = createSessionStore(pool, { clearExpired: true });
 const app = createApp({ pool, config, sessionStore });
 

@@ -24,6 +24,11 @@ export async function up(knex: Knex): Promise<void> {
     ) ${TABLE_OPTIONS}
   `);
   // Triggers block every DB user, the migration user included (the app user also lacks the grants).
+  // Aiven fallback only (CREATE TRIGGER refused there): skipped, and loudly reported at startup.
+  if (process.env.DB_FALLBACK_NO_APPEND_ONLY_TRIGGERS === 'true') {
+    console.warn('WARNING: append-only triggers NOT created (DB_FALLBACK_NO_APPEND_ONLY_TRIGGERS=true)');
+    return;
+  }
   for (const table of APPEND_ONLY) {
     for (const op of ['UPDATE', 'DELETE']) {
       await knex.raw(`

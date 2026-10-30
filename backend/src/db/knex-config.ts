@@ -1,6 +1,6 @@
 import knexFactory from 'knex';
 import type { Knex } from 'knex';
-import { SESSION_INIT_SQL } from '../config/db.js';
+import { SESSION_INIT_SQL, dbSslFromEnv } from '../config/db.js';
 import type { MigrationEnv } from '../config/env.js';
 
 export type DbTarget = 'dev' | 'test';
@@ -28,6 +28,7 @@ export function createMigrationKnex(env: MigrationEnv, target: DbTarget): Knex {
       password: env.DB_MIGRATION_PASSWORD,
       database: targetDatabase(env, target),
       timezone: '+05:30',
+      ssl: dbSslFromEnv(env.DB_SSL_CA),
     },
     pool: {
       min: 0,

@@ -10,11 +10,57 @@ export class ApiError extends Error {
   }
 }
 
+// Free hosting sleeps when idle; the first request then takes up to ~1 minute (or briefly gets a
+// 502/503/504 from the host's proxy). Slow requests raise 'poll:waking' so the app shows a wait
+// message instead of an error; GETs are retried until the server is up.
+const WAKE_NOTICE_MS = 4000;
+const WAKE_GIVE_UP_MS = 120_000;
+const WAKE_RETRY_MS = 3000;
+let pendingSlow = 0;
+
+function setWaking(delta: number): void {
+  pendingSlow += delta;
+  window.dispatchEvent(new CustomEvent('poll:waking', { detail: pendingSlow > 0 }));
+}
+
+const isWakeStatus = (status: number) => status === 502 || status === 503 || status === 504;
+
+async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const started = Date.now();
+  const retryable = (init.method ?? 'GET') === 'GET';
+  let slow = false;
+  const markSlow = () => {
+    if (!slow) {
+      slow = true;
+      setWaking(1);
+    }
+  };
+  const timer = setTimeout(markSlow, WAKE_NOTICE_MS);
+  try {
+    for (;;) {
+      let res: Response | null = null;
+      try {
+        res = await fetch(path, { credentials: 'same-origin', ...init });
+      } catch (err) {
+        if (!retryable || Date.now() - started > WAKE_GIVE_UP_MS) throw err;
+      }
+      if (res !== null && !(retryable && isWakeStatus(res.status) && Date.now() - started <= WAKE_GIVE_UP_MS)) {
+        return res;
+      }
+      markSlow();
+      await new Promise((r) => setTimeout(r, WAKE_RETRY_MS));
+    }
+  } finally {
+    clearTimeout(timer);
+    if (slow) setWaking(-1);
+  }
+}
+
 let csrfToken: string | null = null;
 
 async function ensureCsrf(): Promise<string> {
   if (csrfToken !== null) return csrfToken;
-  const res = await fetch('/api/auth/csrf', { credentials: 'same-origin' });
+  const res = await apiFetch('/api/auth/csrf');
   const body = (await res.json()) as { csrfToken: string };
   csrfToken = body.csrfToken;
   return csrfToken;
@@ -37,14 +83,13 @@ async function handle(res: Response): Promise<Response> {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await handle(await fetch(path, { credentials: 'same-origin' }));
+  const res = await handle(await apiFetch(path));
   return (await res.json()) as T;
 }
 
 async function postRaw(path: string, body: unknown, retry = true): Promise<Response> {
-  const res = await fetch(path, {
+  const res = await apiFetch(path, {
     method: 'POST',
-    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': await ensureCsrf() },
     body: JSON.stringify(body ?? {}),
   });
@@ -68,7 +113,7 @@ export async function apiDownload(path: string, body: unknown, filename: string)
 }
 
 export async function apiGetFile(path: string, filename: string): Promise<void> {
-  const res = await handle(await fetch(path, { credentials: 'same-origin' }));
+  const res = await handle(await apiFetch(path));
   saveBlob(await res.blob(), filename);
 }
 

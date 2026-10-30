@@ -10,7 +10,19 @@ const password = z.string().min(12, 'must be at least 12 characters');
 const port = z.coerce.number().int().min(1).max(65535);
 const isoDate = nonEmpty.regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
 
-const dbConnection = { DB_HOST: nonEmpty, DB_PORT: port, DB_NAME: identifier };
+const flag = z.enum(['true', 'false']).default('false');
+
+const dbConnection = {
+  DB_HOST: nonEmpty,
+  DB_PORT: port,
+  DB_NAME: identifier,
+  /** TLS to MySQL (Aiven): the CA certificate PEM text, or a path to it. Empty = no TLS (local Docker). */
+  DB_SSL_CA: nonEmpty.optional(),
+  /** Aiven fallback ONLY: the app runs as the admin user (no least-privilege app user). Logged at startup. */
+  DB_FALLBACK_ADMIN_AS_APP_USER: flag,
+  /** Aiven fallback ONLY: append-only triggers were not created (CREATE TRIGGER refused). Logged at startup. */
+  DB_FALLBACK_NO_APPEND_ONLY_TRIGGERS: flag,
+};
 
 /** An origin exactly as the browser sends it: scheme://host[:port], no path or trailing slash. */
 const origin = nonEmpty.refine((value) => {
@@ -46,7 +58,7 @@ export const appEnvSchema = z.object({
    *  the per-account lockout is the main defence. */
   LOGIN_RATE_LIMIT_PER_15MIN: z.coerce.number().int().min(5).max(10_000).default(300),
   /** Lets `npm run demo:poll` run in production (presentation only). MUST be false for real use. */
-  DEMO_ALLOWED: z.enum(['true', 'false']).default('false'),
+  DEMO_ALLOWED: flag,
 });
 export type AppEnv = z.infer<typeof appEnvSchema>;
 
@@ -80,9 +92,22 @@ export function parseEnv<T extends z.ZodObject>(
   return { ok: false, problems: [...new Set(problems)].sort() };
 }
 
-/** Loads backend/.env (relative to cwd), validates, and exits the process on failure. */
+/**
+ * Loads backend/.env (relative to cwd), or the file named by ENV_FILE (e.g. .env.aiven for setup
+ * scripts run from a laptop against the cloud database), validates, and exits on failure.
+ */
 export function loadEnvOrExit<T extends z.ZodObject>(schema: T): z.infer<T> {
-  dotenv.config({ quiet: true });
+  const envFile = process.env.ENV_FILE;
+  if (envFile !== undefined && envFile !== '') {
+    const loaded = dotenv.config({ path: envFile, quiet: true });
+    if (loaded.error) {
+      console.error(`Configuration error: ENV_FILE ${envFile} cannot be read`);
+      process.exit(1);
+    }
+    console.log(`Using settings from ${envFile}`);
+  } else {
+    dotenv.config({ quiet: true });
+  }
   const result = parseEnv(schema, process.env);
   if (!result.ok) {
     console.error('Configuration error: fix these environment variables (see backend/.env.example):');

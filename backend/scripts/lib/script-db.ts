@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import type { Pool } from 'mysql2/promise';
-import { createPool } from '../../src/config/db.js';
+import { createPool, dbFallbackWarnings, dbSslFromEnv } from '../../src/config/db.js';
 import { appEnvSchema, loadEnvOrExit } from '../../src/config/env.js';
 import type { AppEnv } from '../../src/config/env.js';
 
@@ -13,6 +13,7 @@ export function scriptPool(env: AppEnv): Pool {
     database: env.DB_NAME,
     user: env.DB_APP_USER,
     password: env.DB_APP_PASSWORD,
+    ssl: dbSslFromEnv(env.DB_SSL_CA),
   });
 }
 
@@ -24,6 +25,7 @@ export function isMainModule(url: string): boolean {
 /** Runs a script body with env + pool; exit code 1 on failure or when it returns false. */
 export async function runScript(body: (pool: Pool, env: AppEnv) => Promise<boolean>): Promise<void> {
   const env = loadEnvOrExit(appEnvSchema);
+  for (const warning of dbFallbackWarnings(env)) console.warn(warning);
   const pool = scriptPool(env);
   try {
     process.exitCode = (await body(pool, env)) ? 0 : 1;

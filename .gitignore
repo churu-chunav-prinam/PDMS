@@ -5,7 +5,9 @@ coverage
 .env.*
 !.env.example
 !.env.production.example
+!.env.aiven.example
 *.log
 backend/reports/
 test-results/
 playwright-report/
+*.pem

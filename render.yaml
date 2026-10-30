@@ -1,0 +1,56 @@
+# Render Blueprint: one FREE web service (API + built frontend). Database: Aiven MySQL (free).
+# Secrets are marked sync: false -> Render asks for them when the Blueprint is created.
+# See docs/DEPLOY-RENDER.md.
+services:
+  - type: web
+    name: pdms
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    # NODE_ENV=production is set below, so dev dependencies (TypeScript, Vite) must be included explicitly.
+    buildCommand: npm --prefix backend ci --include=dev && npm --prefix frontend ci --include=dev && npm run build
+    # Server only. Migrations run from the laptop (ENV_FILE=.env.aiven); the admin password is never
+    # stored on Render. PORT is provided by Render.
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: APP_ORIGIN
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SESSION_IDLE_MINUTES
+        value: "60"
+      - key: SESSION_ABSOLUTE_HOURS
+        value: "20"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: POLL_DATE
+        value: "2026-11-12"
+      - key: FRONTEND_DIST
+        value: ../frontend/dist
+      - key: LOGIN_RATE_LIMIT_PER_15MIN
+        value: "300"
+      - key: DEMO_ALLOWED
+        value: "false"
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        value: churu_poll
+      - key: DB_APP_USER
+        sync: false
+      - key: DB_APP_PASSWORD
+        sync: false
+      - key: DB_SSL_CA
+        sync: false
+      - key: DB_FALLBACK_ADMIN_AS_APP_USER
+        value: "false"
+      - key: DB_FALLBACK_NO_APPEND_ONLY_TRIGGERS
+        value: "false"
